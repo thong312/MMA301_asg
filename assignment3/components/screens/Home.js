@@ -1,35 +1,79 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from 'react-native-vector-icons'; // Import Ionicons
+import { Ionicons } from 'react-native-vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native'; // Import useIsFocused
 
-import { watchData } from '../../data/db'; // Ensure this path is correct based on your project structure
+import { watchData } from '../../data/db'; // Import your watch data
 
-export default function HomeScreen({ navigation }) {
-    const renderItem = ({ item }) => (
-        <TouchableOpacity
-            style={styles.itemContainer}
-            onPress={() => navigation.navigate('Detail', { item: item })}
-        >
-            <Image
-                source={{ uri: item.image }}
-                style={styles.image}
-                resizeMode="stretch"
-            />
-            <View style={styles.textContainer}>
-                <Text style={styles.watchName}>{item.watchName}</Text>
-                <Text style={styles.price}>${item.price}</Text>
-            </View>
-            {/* Add favorite icon */}
-            <TouchableOpacity onPress={() => handleAddToFavourite(item)}>
-                <Ionicons name="heart-outline" size={24} color="red" style={styles.icon} />
+const HomeScreen = ({ navigation }) => {
+    const [favoriteWatches, setFavoriteWatches] = useState([]);
+    const isFocused = useIsFocused(); // Check if the screen is focused
+
+    useEffect(() => {
+        loadFavoriteWatches(); // Load favorite watches from AsyncStorage when screen mounts or focuses
+    }, [isFocused]); // Reload when the screen is focused
+
+    const loadFavoriteWatches = async () => {
+        try {
+            const jsonValue = await AsyncStorage.getItem('favoriteWatches');
+            if (jsonValue !== null) {
+                setFavoriteWatches(JSON.parse(jsonValue));
+            }
+        } catch (error) {
+            console.error('Error loading favorite watches:', error);
+        }
+    };
+
+    const saveFavoriteWatches = async (newFavoriteWatches) => {
+        try {
+            await AsyncStorage.setItem('favoriteWatches', JSON.stringify(newFavoriteWatches));
+            setFavoriteWatches(newFavoriteWatches); // Update state to trigger re-render
+        } catch (error) {
+            console.error('Error saving favorite watches:', error);
+        }
+    };
+
+    const handleAddToFavourite = async (item) => {
+        try {
+            const updatedFavorites = [...favoriteWatches];
+            const existingIndex = updatedFavorites.findIndex((watch) => watch.id === item.id);
+
+            if (existingIndex === -1) {
+                updatedFavorites.push(item); // Add new watch to favorites
+            } else {
+                updatedFavorites.splice(existingIndex, 1); // Remove watch from favorites
+            }
+
+            await saveFavoriteWatches(updatedFavorites); // Save updated favorites to AsyncStorage
+        } catch (error) {
+            console.error('Error adding to favorites:', error);
+        }
+    };
+
+    const renderItem = ({ item }) => {
+        const isFavorite = favoriteWatches.some((watch) => watch.id === item.id);
+
+        return (
+            <TouchableOpacity
+                style={styles.itemContainer}
+                onPress={() => navigation.navigate('Detail', { item: item })}
+            >
+                <Image source={{ uri: item.image }} style={styles.image} resizeMode="stretch" />
+                <View style={styles.textContainer}>
+                    <Text style={styles.watchName}>{item.watchName}</Text>
+                    <Text style={styles.price}>${item.price}</Text>
+                </View>
+                <TouchableOpacity onPress={() => handleAddToFavourite(item)}>
+                    <Ionicons
+                        name={isFavorite ? 'heart' : 'heart-outline'}
+                        size={24}
+                        color={isFavorite ? 'red' : 'black'}
+                        style={styles.icon}
+                    />
+                </TouchableOpacity>
             </TouchableOpacity>
-        </TouchableOpacity>
-    );
-
-    const handleAddToFavourite = (item) => {
-        // Handle logic to add item to favorite list
-        // You can implement this logic according to your requirement
-        console.log('Added to favorite:', item);
+        );
     };
 
     return (
@@ -39,10 +83,11 @@ export default function HomeScreen({ navigation }) {
                 data={watchData}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id.toString()}
+                extraData={favoriteWatches} // Pass favoriteWatches as extraData to trigger re-render
             />
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -81,3 +126,5 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
 });
+
+export default HomeScreen;
