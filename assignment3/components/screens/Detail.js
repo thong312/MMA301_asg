@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from 'react-native-vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import  Icon  from 'react-native-vector-icons/FontAwesome'
 const DetailsScreen = ({ route }) => {
     const { item } = route.params;
     const [isFavorite, setIsFavorite] = useState(false);
@@ -60,22 +60,49 @@ const DetailsScreen = ({ route }) => {
         }
     };
 
+    // const renderFeedbacks = () => {
+    //     if (!item || !item.feedbacks || !Array.isArray(item.feedbacks) || item.feedbacks.length === 0) {
+    //         return (
+    //             <Text style={styles.noFeedbacks}>There is no feedback</Text>
+    //         );
+    //     }
+
+    //     return item.feedbacks.map((feedback, index) => (
+    //         <View key={index} style={styles.feedbackContainer}>
+    //             <Text style={styles.author}>{feedback.author}</Text>
+    //             <Text style={styles.date}>{formatDate(feedback.date)}</Text>
+    //             <Text style={styles.comment}>{feedback.comment}</Text>
+    //             <Text style={styles.rating}>Rating: {feedback.rating}/5</Text>
+    //         </View>
+    //     ));
+    // };
     const renderFeedbacks = () => {
         if (!item || !item.feedbacks || !Array.isArray(item.feedbacks) || item.feedbacks.length === 0) {
-            return (
-                <Text style={styles.noFeedbacks}>There is no feedback</Text>
-            );
+            return <Text style={styles.noFeedbacks}>There is no feedback</Text>;
         }
-
+    
         return item.feedbacks.map((feedback, index) => (
             <View key={index} style={styles.feedbackContainer}>
                 <Text style={styles.author}>{feedback.author}</Text>
                 <Text style={styles.date}>{formatDate(feedback.date)}</Text>
+                <View style={styles.rating}>
+                    {Array.from({ length: 5 }, (_, i) => {
+                        return (
+                            <Icon
+                                key={i}
+                                name={i < feedback.rating ? "star" : "star-o"}
+                                size={16}
+                                color="gold"
+                            />
+                        );
+                    })}
+                </View>
                 <Text style={styles.comment}>{feedback.comment}</Text>
-                <Text style={styles.rating}>Rating: {feedback.rating}/5</Text>
+              
             </View>
         ));
     };
+    
 
     if (!item) {
         return (
@@ -162,6 +189,8 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     rating: {
+        flexDirection: 'row', // Align icons horizontally
+        alignItems: 'center', // Center icons vertically with the text
         fontSize: 14,
         color: 'green',
     },

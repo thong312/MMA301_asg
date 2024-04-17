@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from 'react-native-vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,23 +7,28 @@ import { useFocusEffect } from '@react-navigation/native';
 const FavouriteScreen = ({ navigation }) => {
     const [favoriteWatches, setFavoriteWatches] = useState([]);
 
+    // Function to load favorite watches from AsyncStorage
     const loadFavoriteWatches = async () => {
         try {
             const jsonValue = await AsyncStorage.getItem('favoriteWatches');
             if (jsonValue !== null) {
                 setFavoriteWatches(JSON.parse(jsonValue));
+            } else {
+                setFavoriteWatches([]); // Set to empty array if no favorites found
             }
         } catch (error) {
             console.error('Error loading favorite watches:', error);
         }
     };
 
+    // Use useFocusEffect to load favorite watches when the screen gains focus
     useFocusEffect(
         React.useCallback(() => {
-            loadFavoriteWatches(); // Load favorite watches from AsyncStorage when screen focuses
+            loadFavoriteWatches();
         }, [])
     );
 
+    // Function to remove a single watch from favorites
     const removeFavorite = async (itemId) => {
         try {
             const updatedFavorites = favoriteWatches.filter((watch) => watch.id !== itemId);
@@ -34,9 +39,40 @@ const FavouriteScreen = ({ navigation }) => {
         }
     };
 
+    // Function to remove all watches from favorites
+    const removeAllFavoriteWatches = async () => {
+        try {
+            await AsyncStorage.removeItem('favoriteWatches');
+            setFavoriteWatches([]); // Update state to empty array
+            Alert.alert('Success', 'All watches have been removed from favorites.');
+        } catch (error) {
+            console.error('Error removing all favorite watches:', error);
+            Alert.alert('Error', 'Failed to remove all watches from favorites.');
+        }
+    };
+
+    // Function to handle the confirmation for deleting all favorites
+    const deleteAllFavorites = () => {
+        Alert.alert(
+            'Confirm Deletion',
+            'Are you sure you want to remove all watches from favorites?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'OK',
+                    onPress: async () => {
+                        await removeAllFavoriteWatches(); // Call the function to remove all favorite watches
+                    }
+                }
+            ]
+        );
+    };
+
+    // Render individual watch item in FlatList
     const renderItem = ({ item }) => (
-        <TouchableOpacity style={styles.itemContainer}
-        onPress={() => navigation.navigate('Detail', { item: item })}
+        <TouchableOpacity
+            style={styles.itemContainer}
+            onPress={() => navigation.navigate('Detail', { item: item })}
         >
             <Image source={{ uri: item.image }} style={styles.image} resizeMode="stretch" />
             <View style={styles.textContainer}>
@@ -61,6 +97,10 @@ const FavouriteScreen = ({ navigation }) => {
             ) : (
                 <Text style={styles.emptyText}>No favorite watches yet.</Text>
             )}
+
+            <TouchableOpacity onPress={deleteAllFavorites} style={styles.deleteButton}>
+                <Text style={styles.deleteButtonText}>Delete All Favorites</Text>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -106,6 +146,17 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textAlign: 'center',
         marginTop: 50,
+    },
+    deleteButton: {
+        backgroundColor: 'red',
+        padding: 10,
+        borderRadius: 5,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    deleteButtonText: {
+        color: 'white',
+        fontSize: 16,
     },
 });
 
