@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 
 import { watchData } from '../../data/db';
-
+import watch1 from '../../assets/watch1.jpg'
 const HomeScreen = ({ navigation }) => {
     const [favoriteWatches, setFavoriteWatches] = useState([]);
     const [selectedBrand, setSelectedBrand] = useState('All');
@@ -102,17 +102,6 @@ const HomeScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Available Watches</Text>
-            <View style={styles.filterContainer}>
-                {['All', 'Citizen', 'Tissot', 'Fossil', 'Seiko', 'Frederique Constant'].map((item) => (
-                    <TouchableOpacity
-                        key={item}
-                        style={[styles.filterButton, selectedBrand === item && styles.selectedFilterButton]}
-                        onPress={() => filterWatchesByBrand(item)}
-                    >
-                        <Text style={styles.filterButtonText}>{item}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
             <FlatList
                 data={filteredWatches}
                 renderItem={renderCustomItem}
