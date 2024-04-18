@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Ionicons } from 'react-native-vector-icons'; // Correct import for Ionicons
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 
-import { watchData } from '../../data/db'; // Ensure correct import for watchData
+import { watchData } from '../../data/db';
 
 const HomeScreen = ({ navigation }) => {
     const [favoriteWatches, setFavoriteWatches] = useState([]);
+    const [selectedBrand, setSelectedBrand] = useState('All');
+    const [filteredWatches, setFilteredWatches] = useState([]);
     const isFocused = useIsFocused();
 
     useEffect(() => {
         loadFavoriteWatches();
+        setFilteredWatches(watchData);
     }, [isFocused]);
 
     const loadFavoriteWatches = async () => {
@@ -19,8 +22,6 @@ const HomeScreen = ({ navigation }) => {
             const jsonValue = await AsyncStorage.getItem('favoriteWatches');
             if (jsonValue !== null) {
                 setFavoriteWatches(JSON.parse(jsonValue));
-            } else {
-                setFavoriteWatches([]);
             }
         } catch (error) {
             console.error('Error loading favorite watches:', error);
@@ -53,42 +54,47 @@ const HomeScreen = ({ navigation }) => {
         }
     };
 
-    const selectAllFavorites = () => {
-        Alert.alert(
-            'Confirm Selection',
-            'Are you sure you want to add all watches to favorites?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'OK', onPress: async () => {
-                        await saveFavoriteWatches(watchData);
-                    }
-                }
-            ]
-        );
+    const filterWatchesByBrand = (brand) => {
+        setSelectedBrand(brand);
+        if (brand === 'All') {
+            setFilteredWatches(watchData);
+        } else {
+            const filtered = watchData.filter((watch) => watch.brandName === brand);
+            setFilteredWatches(filtered);
+        }
     };
 
-    const renderItem = ({ item }) => {
-        const isFavorite = favoriteWatches.some((watch) => watch.id === item.id);
+    const renderFilterButton = ({ item }) => (
+        <TouchableOpacity
+            style={[styles.filterButton, selectedBrand === item && styles.selectedFilterButton]}
+            onPress={() => filterWatchesByBrand(item)}
+        >
+            <Text style={styles.filterButtonText}>{item}</Text>
+        </TouchableOpacity>
+    );
 
+    const renderCustomItem = ({ item }) => {
+        const isFavorite = favoriteWatches.some((watch) => watch.id === item.id);
         return (
             <TouchableOpacity
-                style={styles.itemContainer}
+                style={styles.cardContainer}
                 onPress={() => navigation.navigate('Detail', { item: item })}
             >
-                <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
-                <View style={styles.textContainer}>
-                    <Text style={styles.watchName}>{item.watchName}</Text>
-                    <Text style={styles.price}>${item.price}</Text>
+                <View style={styles.card}>
+                    <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+                    <View style={styles.cardContent}>
+                        <Text style={styles.watchName}>{item.watchName}</Text>
+                        <Text style={styles.price}>${item.price}</Text>
+                        <TouchableOpacity onPress={() => handleAddToFavourite(item)}>
+                            <Ionicons
+                                name={isFavorite ? 'heart' : 'heart-outline'}
+                                size={24}
+                                color={isFavorite ? 'red' : 'black'}
+                                style={styles.icon}
+                            />
+                        </TouchableOpacity>
+                    </View>
                 </View>
-                <TouchableOpacity onPress={() => handleAddToFavourite(item)}>
-                    <Ionicons
-                        name={isFavorite ? 'heart' : 'heart-outline'}
-                        size={24}
-                        color={isFavorite ? 'red' : 'black'}
-                        style={styles.icon}
-                    />
-                </TouchableOpacity>
             </TouchableOpacity>
         );
     };
@@ -96,16 +102,23 @@ const HomeScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Available Watches</Text>
-            
+            <View style={styles.filterContainer}>
+                {['All', 'Citizen', 'Tissot', 'Fossil', 'Seiko', 'Frederique Constant'].map((item) => (
+                    <TouchableOpacity
+                        key={item}
+                        style={[styles.filterButton, selectedBrand === item && styles.selectedFilterButton]}
+                        onPress={() => filterWatchesByBrand(item)}
+                    >
+                        <Text style={styles.filterButtonText}>{item}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
             <FlatList
-                data={watchData}
-                renderItem={renderItem}
+                data={filteredWatches}
+                renderItem={renderCustomItem}
                 keyExtractor={(item) => item.id.toString()}
-                extraData={favoriteWatches} // Ensure re-render when favoriteWatches change
+                extraData={favoriteWatches}
             />
-            <TouchableOpacity onPress={selectAllFavorites} style={styles.selectAllButton}>
-                <Text style={styles.selectAllText}>+</Text>
-            </TouchableOpacity>
         </View>
     );
 };
@@ -113,27 +126,57 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: 20,
+        paddingHorizontal: 10,
+        backgroundColor: '#fff',
     },
     header: {
         fontSize: 24,
         fontWeight: 'bold',
         textAlign: 'center',
+        marginTop: 20,
+        marginBottom: 10,
     },
-    itemContainer: {
+    filterContainer: {
         flexDirection: 'row',
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#cccccc',
+        flexWrap: 'wrap',
+        marginTop: 10,
+        marginBottom: 20,
+    },
+    filterButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: '#f0f0f0',
+        marginHorizontal: 5,
+        marginBottom: 10,
+    },
+    selectedFilterButton: {
+        backgroundColor: '#007BFF',
+    },
+    filterButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    cardContainer: {
+        marginBottom: 10,
+    },
+    card: {
+        flexDirection: 'row',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'black',
+        borderRadius: 8,
+        padding: 10,
     },
     image: {
         width: 100,
         height: 100,
+        borderRadius: 8,
     },
-    textContainer: {
+    cardContent: {
+        marginLeft: 10,
         flex: 1,
-        paddingLeft: 10,
     },
     watchName: {
         fontSize: 18,
@@ -141,21 +184,11 @@ const styles = StyleSheet.create({
     },
     price: {
         fontSize: 16,
-        color: '#888888',
+        color: '#888',
+        marginTop: 5,
     },
     icon: {
-        marginLeft: 10,
-    },
-    selectAllButton: {
-        backgroundColor: '#007BFF',
-        padding: 10,
-        borderRadius: 5,
-        marginVertical: 10,
-        alignSelf: 'center',
-    },
-    selectAllText: {
-        color: '#fff',
-        fontSize: 16,
+        marginLeft: 'auto',
     },
 });
 

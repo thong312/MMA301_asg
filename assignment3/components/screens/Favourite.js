@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const FavouriteScreen = ({ navigation }) => {
     const [favoriteWatches, setFavoriteWatches] = useState([]);
+    const [selectedItems, setSelectedItems] = useState({});
 
     // Function to load favorite watches from AsyncStorage
     const loadFavoriteWatches = async () => {
@@ -14,74 +15,106 @@ const FavouriteScreen = ({ navigation }) => {
             if (jsonValue !== null) {
                 setFavoriteWatches(JSON.parse(jsonValue));
             } else {
-                setFavoriteWatches([]); // Set to empty array if no favorites found
+                setFavoriteWatches([]);
             }
         } catch (error) {
             console.error('Error loading favorite watches:', error);
         }
     };
 
-    // Use useFocusEffect to load favorite watches when the screen gains focus
     useFocusEffect(
         React.useCallback(() => {
             loadFavoriteWatches();
         }, [])
     );
 
-    // Function to remove a single watch from favorites
-    const removeFavorite = async (itemId) => {
-        try {
-            const updatedFavorites = favoriteWatches.filter((watch) => watch.id !== itemId);
-            await AsyncStorage.setItem('favoriteWatches', JSON.stringify(updatedFavorites));
-            setFavoriteWatches(updatedFavorites); // Update state to trigger re-render
-        } catch (error) {
-            console.error('Error removing from favorites:', error);
-        }
+    useEffect(() => {
+        loadFavoriteWatches();
+    }, []);
+
+    // Toggle selection of an item
+    const toggleItemSelection = (itemId) => {
+        setSelectedItems((prevSelectedItems) => ({
+            ...prevSelectedItems,
+            [itemId]: !prevSelectedItems[itemId],
+        }));
     };
 
-    // Function to remove all watches from favorites
-    const removeAllFavoriteWatches = async () => {
-        try {
-            await AsyncStorage.removeItem('favoriteWatches');
-            setFavoriteWatches([]); // Update state to empty array
-            Alert.alert('Success', 'All watches have been removed from favorites.');
-        } catch (error) {
-            console.error('Error removing all favorite watches:', error);
-            Alert.alert('Error', 'Failed to remove all watches from favorites.');
-        }
-    };
+    // Function to remove selected items from favorites
+    const deleteSelectedFavorites = () => {
+        // Check if any items are selected
+        const selectedIds = Object.keys(selectedItems).filter((itemId) => selectedItems[itemId]);
 
-    // Function to handle the confirmation for deleting all favorites
-    const deleteAllFavorites = () => {
+        if (selectedIds.length === 0) {
+            Alert.alert('No Items Selected', 'Please select items to delete.');
+            return;
+        }
+
+        // Show confirmation dialog
         Alert.alert(
             'Confirm Deletion',
-            'Are you sure you want to remove all watches from favorites?',
+            'Are you sure you want to delete the selected items?',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'OK',
                     onPress: async () => {
-                        await removeAllFavoriteWatches(); // Call the function to remove all favorite watches
-                    }
-                }
-            ]
+                        try {
+                            const updatedFavorites = favoriteWatches.filter((watch) => !selectedItems[watch.id]);
+                            await AsyncStorage.setItem('favoriteWatches', JSON.stringify(updatedFavorites));
+                            setFavoriteWatches(updatedFavorites);
+                            setSelectedItems({}); // Clear selected items after deletion
+                        } catch (error) {
+                            console.error('Error removing selected favorites:', error)
+                        }
+                    },
+                },
+            ],
+            { cancelable: false }
         );
     };
 
-    // Render individual watch item in FlatList
+    // Function to remove a single watch from favorites
+    const removeFavorite = async (itemId) => {
+        try {
+            const updatedFavorites = favoriteWatches.filter((watch) => watch.id !== itemId);
+            await AsyncStorage.setItem('favoriteWatches', JSON.stringify(updatedFavorites));
+            setFavoriteWatches(updatedFavorites);
+            Alert.alert('Success', 'The watch has been removed from favorites.');
+        } catch (error) {
+            console.error('Error removing favorite:', error);
+            Alert.alert('Error', 'Failed to remove the watch from favorites.');
+        }
+    };
+
+    // Render individual watch item in FlatList with checkbox for selection
     const renderItem = ({ item }) => (
         <TouchableOpacity
             style={styles.itemContainer}
             onPress={() => navigation.navigate('Detail', { item: item })}
         >
+             <TouchableOpacity onPress={() => toggleItemSelection(item.id)}>
+                <Ionicons
+                    name={selectedItems[item.id] ? 'checkbox-outline' : 'square-outline'}
+                    size={24}
+                    color={selectedItems[item.id] ? 'green' : 'black'}
+                    style={styles.icon}
+                />
+            </TouchableOpacity>
             <Image source={{ uri: item.image }} style={styles.image} resizeMode="stretch" />
             <View style={styles.textContainer}>
                 <Text style={styles.watchName}>{item.watchName}</Text>
                 <Text style={styles.price}>${item.price}</Text>
             </View>
             <TouchableOpacity onPress={() => removeFavorite(item.id)}>
-                <Ionicons name="trash-outline" size={24} color="red" style={styles.icon} />
+                <Ionicons
+                    name={'trash-outline'}
+                    size={24}
+                    color={'red'}
+                    style={styles.icon}
+                />
             </TouchableOpacity>
+           
         </TouchableOpacity>
     );
 
@@ -89,18 +122,19 @@ const FavouriteScreen = ({ navigation }) => {
         <View style={styles.container}>
             <Text style={styles.header}>Favorite Watches</Text>
             {favoriteWatches.length > 0 ? (
-                <FlatList
-                    data={favoriteWatches}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item.id.toString()}
-                />
+                <>
+                    <FlatList
+                        data={favoriteWatches}
+                        renderItem={renderItem}
+                        keyExtractor={(item) => item.id.toString()}
+                    />
+                    <TouchableOpacity onPress={deleteSelectedFavorites} style={styles.deleteButton}>
+                        <Text style={styles.deleteButtonText}>Delete Selected</Text>
+                    </TouchableOpacity>
+                </>
             ) : (
                 <Text style={styles.emptyText}>No favorite watches yet.</Text>
             )}
-
-            <TouchableOpacity onPress={deleteAllFavorites} style={styles.deleteButton}>
-                <Text style={styles.deleteButtonText}>Delete All Favorites</Text>
-            </TouchableOpacity>
         </View>
     );
 };

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from 'react-native-vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import  Icon  from 'react-native-vector-icons/FontAwesome'
+import Icon from 'react-native-vector-icons/FontAwesome';
+import { useFocusEffect } from '@react-navigation/native';
+
 const DetailsScreen = ({ route }) => {
     const { item } = route.params;
     const [isFavorite, setIsFavorite] = useState(false);
@@ -27,6 +29,12 @@ const DetailsScreen = ({ route }) => {
             console.error('Error loading favorite watches:', error);
         }
     };
+    useFocusEffect(
+        React.useCallback(() => {
+            checkIsFavorite();
+        }, [])
+    );
+
 
     const saveFavoriteWatches = async (newFavoriteWatches) => {
         try {
@@ -60,27 +68,11 @@ const DetailsScreen = ({ route }) => {
         }
     };
 
-    // const renderFeedbacks = () => {
-    //     if (!item || !item.feedbacks || !Array.isArray(item.feedbacks) || item.feedbacks.length === 0) {
-    //         return (
-    //             <Text style={styles.noFeedbacks}>There is no feedback</Text>
-    //         );
-    //     }
-
-    //     return item.feedbacks.map((feedback, index) => (
-    //         <View key={index} style={styles.feedbackContainer}>
-    //             <Text style={styles.author}>{feedback.author}</Text>
-    //             <Text style={styles.date}>{formatDate(feedback.date)}</Text>
-    //             <Text style={styles.comment}>{feedback.comment}</Text>
-    //             <Text style={styles.rating}>Rating: {feedback.rating}/5</Text>
-    //         </View>
-    //     ));
-    // };
     const renderFeedbacks = () => {
         if (!item || !item.feedbacks || !Array.isArray(item.feedbacks) || item.feedbacks.length === 0) {
             return <Text style={styles.noFeedbacks}>There is no feedback</Text>;
         }
-    
+
         return item.feedbacks.map((feedback, index) => (
             <View key={index} style={styles.feedbackContainer}>
                 <Text style={styles.author}>{feedback.author}</Text>
@@ -90,7 +82,7 @@ const DetailsScreen = ({ route }) => {
                         return (
                             <Icon
                                 key={i}
-                                name={i < feedback.rating ? "star" : "star-o"}
+                                name={i < feedback.rating ? 'star' : 'star-o'}
                                 size={16}
                                 color="gold"
                             />
@@ -98,11 +90,9 @@ const DetailsScreen = ({ route }) => {
                     })}
                 </View>
                 <Text style={styles.comment}>{feedback.comment}</Text>
-              
             </View>
         ));
     };
-    
 
     if (!item) {
         return (
@@ -113,43 +103,50 @@ const DetailsScreen = ({ route }) => {
     }
 
     return (
-        <View style={styles.container}>
-            <TouchableOpacity style={styles.favouriteButton} onPress={handleToggleFavorite}>
-                <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color="red" />
-            </TouchableOpacity>
-            <ScrollView>
-                <Image source={{ uri: item.image }} style={styles.image} />
+        <ScrollView style={styles.container}>
+            <Image source={{ uri: item.image }} style={styles.image} />
+            <View style={styles.content}>
                 <Text style={styles.title}>{item.watchName}</Text>
-                <Text style={styles.price}>${item.price}</Text>
                 <Text style={styles.description}>{item.description}</Text>
+                <Text style={styles.price}>Price: ${item.price}</Text>
+                <Text style={styles.brand}>Brand: {item.brandName}</Text>
+                <TouchableOpacity style={styles.favoriteButton} onPress={handleToggleFavorite}>
+                <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color="red" />
+                <Text style={styles.favoriteButtonText}>{isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</Text>
+            </TouchableOpacity>
+            </View>
+            <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Feedbacks:</Text>
-                <ScrollView>
-                    {renderFeedbacks()}
-                </ScrollView>
-            </ScrollView>
-        </View>
+                {renderFeedbacks()}
+            </View>
+            
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        padding: 16,
         backgroundColor: '#fff',
+        padding: 16,
     },
     image: {
-        width: 200,
-        height: 200,
-        marginBottom: 12,
-        borderRadius: 8,
+        width: '100%',
+        height: 300,
+        borderRadius: 10,
+        marginBottom: 16,
+    },
+    content: {
+        marginBottom: 16,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 8,
-        textAlign: 'center',
+    },
+    description: {
+        fontSize: 16,
+        marginBottom: 8,
     },
     price: {
         fontSize: 18,
@@ -157,17 +154,27 @@ const styles = StyleSheet.create({
         color: 'tomato',
         marginBottom: 8,
     },
-    description: {
+    brand: {
         fontSize: 16,
         marginBottom: 16,
-        textAlign: 'center',
+    },
+    addToCartButton: {
+        backgroundColor: 'tomato',
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    addToCartButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+    },
+    section: {
+        marginBottom: 16,
     },
     sectionTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginTop: 16,
         marginBottom: 8,
-        alignSelf: 'flex-start',
     },
     feedbackContainer: {
         marginBottom: 12,
@@ -189,23 +196,22 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     rating: {
-        flexDirection: 'row', // Align icons horizontally
-        alignItems: 'center', // Center icons vertically with the text
-        fontSize: 14,
-        color: 'green',
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    favouriteButton: {
-        marginTop: 16,
-        padding: 8,
-        borderRadius: 20,
+    favoriteButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
         borderWidth: 1,
         borderColor: 'red',
-        width: 45,
-        alignSelf: 'flex-end',
+        padding: 12,
+        borderRadius: 8,
     },
-    scrollView: {
-        width: '100%',
-        maxHeight: 200, // Adjust maximum height of ScrollView
+    favoriteButtonText: {
+        marginLeft: 8,
+        color: 'red',
+        fontWeight: 'bold',
     },
     noFeedbacks: {
         fontSize: 16,
