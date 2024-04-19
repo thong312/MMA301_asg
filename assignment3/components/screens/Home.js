@@ -5,16 +5,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 
 import { watchData } from '../../data/db';
-import watch1 from '../../assets/watch1.jpg'
+
 const HomeScreen = ({ navigation }) => {
     const [favoriteWatches, setFavoriteWatches] = useState([]);
     const [selectedBrand, setSelectedBrand] = useState('All');
     const [filteredWatches, setFilteredWatches] = useState([]);
+    const [brands, setBrands] = useState([]);
     const isFocused = useIsFocused();
 
     useEffect(() => {
         loadFavoriteWatches();
         setFilteredWatches(watchData);
+        setBrands(getUniqueBrands(watchData));
+        loadStoredFilter(); // Load stored filter when component mounts
     }, [isFocused]);
 
     const loadFavoriteWatches = async () => {
@@ -25,6 +28,18 @@ const HomeScreen = ({ navigation }) => {
             }
         } catch (error) {
             console.error('Error loading favorite watches:', error);
+        }
+    };
+
+    const loadStoredFilter = async () => {
+        try {
+            const storedBrand = await AsyncStorage.getItem('selectedBrand');
+            if (storedBrand) {
+                setSelectedBrand(storedBrand);
+                filterWatchesByBrand(storedBrand);
+            }
+        } catch (error) {
+            console.error('Error loading stored filter:', error);
         }
     };
 
@@ -54,6 +69,11 @@ const HomeScreen = ({ navigation }) => {
         }
     };
 
+    const getUniqueBrands = (watches) => {
+        const brands = watches.map(watch => watch.brandName);
+        return ['All', ...new Set(brands)];
+    };
+
     const filterWatchesByBrand = (brand) => {
         setSelectedBrand(brand);
         if (brand === 'All') {
@@ -62,6 +82,8 @@ const HomeScreen = ({ navigation }) => {
             const filtered = watchData.filter((watch) => watch.brandName === brand);
             setFilteredWatches(filtered);
         }
+        // Save selectedBrand to AsyncStorage
+        AsyncStorage.setItem('selectedBrand', brand);
     };
 
     const renderFilterButton = ({ item }) => (
@@ -102,6 +124,15 @@ const HomeScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Available Watches</Text>
+            <View style={styles.filterContainer}>
+                <FlatList
+                    horizontal
+                    data={brands}
+                    renderItem={renderFilterButton}
+                    keyExtractor={(item) => item}
+                    showsHorizontalScrollIndicator={false}
+                />
+            </View>
             <FlatList
                 data={filteredWatches}
                 renderItem={renderCustomItem}
@@ -128,6 +159,7 @@ const styles = StyleSheet.create({
     filterContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
+        justifyContent: 'center',
         marginTop: 10,
         marginBottom: 20,
     },
@@ -154,7 +186,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'black',
+        borderColor: '#ddd',
         borderRadius: 8,
         padding: 10,
     },
