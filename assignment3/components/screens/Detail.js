@@ -87,7 +87,6 @@ const DetailsScreen = ({ route }) => {
             </View>
         );
     };
-    
 
     if (!item) {
         return (
@@ -98,10 +97,10 @@ const DetailsScreen = ({ route }) => {
     }
 
     return (
-        <ScrollView style={styles.container}>
+        <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('HomeTab')}>
-                    <Ionicons name="home" size={24} color="black" />
+                    <Ionicons name="home" size={22} color="black" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleToggleFavorite}>
                     <Ionicons
@@ -112,23 +111,25 @@ const DetailsScreen = ({ route }) => {
                     />
                 </TouchableOpacity>
             </View>
-            <Image source={{ uri: item.image }} style={styles.image} />
-            <View style={styles.detailsContainer}>
-                <Text style={styles.title}>{item.watchName}</Text>
-                <Text style={styles.brand}>Brand: {item.brandName}</Text>
-                <Text style={styles.price}>${item.price}</Text>
-                <Text style={styles.additionalInfo}>Automatic: {item.isAutomatic ? 'Yes' : 'No'}</Text>
-                <Text style={styles.description}>
-                    {showFullDescription ? item.description : `${item.description.slice(0, 100)}...`}
-                </Text>
-                <TouchableOpacity onPress={() => setShowFullDescription(!showFullDescription)}>
-                    <Text style={styles.readMoreButton}>
-                        {showFullDescription ? ' Less' : ' More'}
+            <ScrollView>
+                <Image source={{ uri: item.image }} style={styles.image} />
+                <View style={styles.detailsContainer}>
+                    <Text style={styles.title}>{item.watchName}</Text>
+                    <Text style={styles.brand}>Brand: {item.brandName}</Text>
+                    <Text style={styles.price}>${item.price}</Text>
+                    <Text style={styles.additionalInfo}>Automatic: {item.isAutomatic ? 'Yes' : 'No'}</Text>
+                    <Text style={styles.description}>
+                        {showFullDescription ? item.description : `${item.description.slice(0, 100)}...`}
                     </Text>
-                </TouchableOpacity>
-            </View>
-            {renderFeedbacks()}
-        </ScrollView>
+                    <TouchableOpacity onPress={() => setShowFullDescription(!showFullDescription)}>
+                        <Text style={styles.readMoreButton}>
+                            {showFullDescription ? ' Less' : ' More'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+                {renderFeedbacks()}
+            </ScrollView>
+        </View>
     );
 };
 
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingTop: 60,
     },
     favoriteIcon: {
