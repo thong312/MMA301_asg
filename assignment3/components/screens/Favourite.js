@@ -80,7 +80,6 @@ const FavouriteScreen = ({ navigation }) => {
             const updatedFavorites = favoriteWatches.filter((watch) => watch.id !== itemId);
             await AsyncStorage.setItem('favoriteWatches', JSON.stringify(updatedFavorites));
             setFavoriteWatches(updatedFavorites);
-            Alert.alert('Success', 'The watch has been removed from favorites.');
         } catch (error) {
             console.error('Error removing favorite:', error);
             Alert.alert('Error', 'Failed to remove the watch from favorites.');
@@ -91,14 +90,13 @@ const FavouriteScreen = ({ navigation }) => {
     const renderItem = ({ item }) => (
         <TouchableOpacity
             style={styles.itemContainer}
-            onPress={() => navigation.navigate('Detail', { item: item })}
+            onPress={() => navigation.navigate('Detail', { item })}
         >
-             <TouchableOpacity onPress={() => toggleItemSelection(item.id)}>
+            <TouchableOpacity onPress={() => toggleItemSelection(item.id)} style={styles.checkbox}>
                 <Ionicons
                     name={selectedItems[item.id] ? 'checkbox-outline' : 'square-outline'}
                     size={24}
                     color={selectedItems[item.id] ? 'green' : 'black'}
-                    style={styles.icon}
                 />
             </TouchableOpacity>
             <Image source={{ uri: item.image }} style={styles.image} resizeMode="stretch" />
@@ -106,15 +104,13 @@ const FavouriteScreen = ({ navigation }) => {
                 <Text style={styles.watchName}>{item.watchName}</Text>
                 <Text style={styles.price}>${item.price}</Text>
             </View>
-            <TouchableOpacity onPress={() => removeFavorite(item.id)}>
+            <TouchableOpacity onPress={() => removeFavorite(item.id)} style={styles.iconContainer}>
                 <Ionicons
-                    name={'trash-outline'}
+                    name="trash-outline"
                     size={24}
-                    color={'red'}
-                    style={styles.icon}
+                    color="red"
                 />
             </TouchableOpacity>
-           
         </TouchableOpacity>
     );
 
@@ -149,13 +145,18 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
+        paddingTop: 50,
     },
     itemContainer: {
         flexDirection: 'row',
-        padding: 10,
+        padding: 5,
         borderBottomWidth: 1,
         borderBottomColor: '#cccccc',
         alignItems: 'center',
+    },
+    checkbox: {
+        marginRight: 10,
+        padding: 5,
     },
     image: {
         width: 100,
@@ -173,8 +174,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#888888',
     },
-    icon: {
-        marginLeft: 10,
+    iconContainer: {
+        marginLeft: 20,
     },
     emptyText: {
         fontSize: 16,

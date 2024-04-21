@@ -13,11 +13,24 @@ const HomeScreen = ({ navigation }) => {
     const [brands, setBrands] = useState([]);
     const isFocused = useIsFocused();
 
+    // useEffect(() => {
+    //     loadFavoriteWatches();
+    //     setFilteredWatches(watchData);
+    //     setBrands(getUniqueBrands(watchData));
+    //     loadStoredFilter(); // Load stored filter when component mounts
+    // }, [isFocused]);
     useEffect(() => {
         loadFavoriteWatches();
-        setFilteredWatches(watchData);
+        setFilteredWatches(watchData); // This ensures all watches are shown each time
         setBrands(getUniqueBrands(watchData));
-        loadStoredFilter(); // Load stored filter when component mounts
+    
+        // Reset the brand filter to 'All' whenever the screen is focused
+        if (isFocused) {
+            setSelectedBrand('All');
+            filterWatchesByBrand('All');
+        }
+    
+        // Optionally, you can also save this default filter state to AsyncStorage here if needed
     }, [isFocused]);
 
     const loadFavoriteWatches = async () => {
@@ -28,18 +41,6 @@ const HomeScreen = ({ navigation }) => {
             }
         } catch (error) {
             console.error('Error loading favorite watches:', error);
-        }
-    };
-
-    const loadStoredFilter = async () => {
-        try {
-            const storedBrand = await AsyncStorage.getItem('selectedBrand');
-            if (storedBrand) {
-                setSelectedBrand(storedBrand);
-                filterWatchesByBrand(storedBrand);
-            }
-        } catch (error) {
-            console.error('Error loading stored filter:', error);
         }
     };
 
@@ -155,6 +156,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 20,
         marginBottom: 10,
+        paddingTop: 50,
     },
     filterContainer: {
         flexDirection: 'row',

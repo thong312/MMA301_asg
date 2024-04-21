@@ -1,16 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons } from 'react-native-vector-icons';
+import { Ionicons } from '@expo/vector-icons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+
+const FeedbackCard = ({ feedback, formatDate }) => {
+    return (
+        <View style={styles.card}>
+            <Text style={styles.author}>{feedback.author}</Text>
+            <Text style={styles.date}>{formatDate(feedback.date)}</Text>
+            <View style={styles.rating}>
+                {Array.from({ length: 5 }, (_, i) => (
+                    <Icon
+                        key={i}
+                        name={i < feedback.rating ? 'star' : 'star-o'}
+                        size={16}
+                        color="gold"
+                    />
+                ))}
+            </View>
+            <Text style={styles.comment}>{feedback.comment}</Text>
+        </View>
+    );
+};
 
 const DetailsScreen = ({ route }) => {
     const { item } = route.params;
     const [isFavorite, setIsFavorite] = useState(false);
+    const [showFullDescription, setShowFullDescription] = useState(false);
+    const [showFullFeedbacks, setShowFullFeedbacks] = useState(false);
+    const navigation = useNavigation();
 
     useEffect(() => {
-        checkIsFavorite(); // Kiểm tra xem mục hiện tại có trong danh sách yêu thích không
+        checkIsFavorite();
     }, []);
 
     const formatDate = (date) => {
@@ -22,25 +45,10 @@ const DetailsScreen = ({ route }) => {
             const jsonValue = await AsyncStorage.getItem('favoriteWatches');
             if (jsonValue !== null) {
                 const favoriteWatches = JSON.parse(jsonValue);
-                const isItemFavorite = favoriteWatches.some((watch) => watch.id === item.id);
-                setIsFavorite(isItemFavorite);
+                setIsFavorite(favoriteWatches.some((watch) => watch.id === item.id));
             }
         } catch (error) {
             console.error('Error loading favorite watches:', error);
-        }
-    };
-    useFocusEffect(
-        React.useCallback(() => {
-            checkIsFavorite();
-        }, [])
-    );
-
-
-    const saveFavoriteWatches = async (newFavoriteWatches) => {
-        try {
-            await AsyncStorage.setItem('favoriteWatches', JSON.stringify(newFavoriteWatches));
-        } catch (error) {
-            console.error('Error saving favorite watches:', error);
         }
     };
 
@@ -51,18 +59,15 @@ const DetailsScreen = ({ route }) => {
             if (jsonValue !== null) {
                 updatedFavorites = JSON.parse(jsonValue);
             }
-
             const existingIndex = updatedFavorites.findIndex((watch) => watch.id === item.id);
-
             if (existingIndex === -1) {
-                updatedFavorites.push(item); // Thêm vào danh sách yêu thích
+                updatedFavorites.push(item);
                 setIsFavorite(true);
             } else {
-                updatedFavorites.splice(existingIndex, 1); // Xóa khỏi danh sách yêu thích
+                updatedFavorites.splice(existingIndex, 1);
                 setIsFavorite(false);
             }
-
-            await saveFavoriteWatches(updatedFavorites); // Lưu danh sách yêu thích mới vào AsyncStorage
+            await AsyncStorage.setItem('favoriteWatches', JSON.stringify(updatedFavorites));
         } catch (error) {
             console.error('Error toggling favorite:', error);
         }
@@ -70,29 +75,19 @@ const DetailsScreen = ({ route }) => {
 
     const renderFeedbacks = () => {
         if (!item || !item.feedbacks || !Array.isArray(item.feedbacks) || item.feedbacks.length === 0) {
-            return <Text style={styles.noFeedbacks}>There is no feedback</Text>;
+            return <Text style={styles.noFeedbacks}>There are no feedbacks for this item.</Text>;
         }
-
-        return item.feedbacks.map((feedback, index) => (
-            <View key={index} style={styles.feedbackContainer}>
-                <Text style={styles.author}>{feedback.author}</Text>
-                <Text style={styles.date}>{formatDate(feedback.date)}</Text>
-                <View style={styles.rating}>
-                    {Array.from({ length: 5 }, (_, i) => {
-                        return (
-                            <Icon
-                                key={i}
-                                name={i < feedback.rating ? 'star' : 'star-o'}
-                                size={16}
-                                color="gold"
-                            />
-                        );
-                    })}
-                </View>
-                <Text style={styles.comment}>{feedback.comment}</Text>
+    
+        return (
+            <View style={styles.feedbackContainer}>
+                <Text style={styles.sectionTitle}>Feedbacks</Text>
+                {item.feedbacks.map((feedback, index) => (
+                    <FeedbackCard key={index} feedback={feedback} formatDate={formatDate} />
+                ))}
             </View>
-        ));
+        );
     };
+    
 
     if (!item) {
         return (
@@ -104,22 +99,35 @@ const DetailsScreen = ({ route }) => {
 
     return (
         <ScrollView style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.navigate('HomeTab')}>
+                    <Ionicons name="home" size={24} color="black" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleToggleFavorite}>
+                    <Ionicons
+                        name={isFavorite ? 'heart' : 'heart-outline'}
+                        size={24}
+                        color={isFavorite ? 'red' : 'black'}
+                        style={styles.favoriteIcon}
+                    />
+                </TouchableOpacity>
+            </View>
             <Image source={{ uri: item.image }} style={styles.image} />
-            <View style={styles.content}>
+            <View style={styles.detailsContainer}>
                 <Text style={styles.title}>{item.watchName}</Text>
-                <Text style={styles.description}>{item.description}</Text>
-                <Text style={styles.price}>Price: ${item.price}</Text>
                 <Text style={styles.brand}>Brand: {item.brandName}</Text>
-                <TouchableOpacity style={styles.favoriteButton} onPress={handleToggleFavorite}>
-                <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color="red" />
-                <Text style={styles.favoriteButtonText}>{isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</Text>
-            </TouchableOpacity>
+                <Text style={styles.price}>${item.price}</Text>
+                <Text style={styles.additionalInfo}>Automatic: {item.isAutomatic ? 'Yes' : 'No'}</Text>
+                <Text style={styles.description}>
+                    {showFullDescription ? item.description : `${item.description.slice(0, 100)}...`}
+                </Text>
+                <TouchableOpacity onPress={() => setShowFullDescription(!showFullDescription)}>
+                    <Text style={styles.readMoreButton}>
+                        {showFullDescription ? ' Less' : ' More'}
+                    </Text>
+                </TouchableOpacity>
             </View>
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Feedbacks:</Text>
-                {renderFeedbacks()}
-            </View>
-            
+            {renderFeedbacks()}
         </ScrollView>
     );
 };
@@ -128,100 +136,106 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
-        padding: 16,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingTop: 60,
+    },
+    favoriteIcon: {
+        marginLeft: 20,
     },
     image: {
         width: '100%',
         height: 300,
-        borderRadius: 10,
-        marginBottom: 16,
+        resizeMode: 'cover',
     },
-    content: {
-        marginBottom: 16,
+    detailsContainer: {
+        padding: 16,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 8,
     },
-    description: {
-        fontSize: 16,
+    brand: {
+        fontSize: 18,
+        color: '#888',
         marginBottom: 8,
     },
     price: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
         color: 'tomato',
-        marginBottom: 8,
+        marginBottom: 16,
     },
-    brand: {
+    additionalInfo: {
         fontSize: 16,
         marginBottom: 16,
     },
-    addToCartButton: {
-        backgroundColor: 'tomato',
-        padding: 12,
-        borderRadius: 8,
-        alignItems: 'center',
+    description: {
+        fontSize: 16,
+        lineHeight: 24,
+        marginBottom: 24,
     },
-    addToCartButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
+    readMoreButton: {
+        color: 'blue',
+        textAlign:'center'
     },
-    section: {
-        marginBottom: 16,
+    error: {
+        fontSize: 18,
+        color: 'red',
+        textAlign: 'center',
+        marginTop: 20,
+    },
+    feedbackContainer: {
+        padding: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#ccc',
     },
     sectionTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 8,
+        marginBottom: 16,
+        textAlign: 'center',
     },
-    feedbackContainer: {
-        marginBottom: 12,
-        borderBottomWidth: 1,
-        paddingBottom: 8,
-        borderColor: '#ccc',
+    card: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        padding: 16,
+        marginBottom: 16,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
     author: {
         fontSize: 16,
         fontWeight: 'bold',
     },
     date: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#888',
-        marginBottom: 4,
-    },
-    comment: {
-        fontSize: 16,
-        marginBottom: 4,
+        marginBottom: 8,
     },
     rating: {
         flexDirection: 'row',
-        alignItems: 'center',
+        marginBottom: 8,
     },
-    favoriteButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: 'red',
-        padding: 12,
-        borderRadius: 8,
-    },
-    favoriteButtonText: {
-        marginLeft: 8,
-        color: 'red',
-        fontWeight: 'bold',
+    comment: {
+        fontSize: 16,
     },
     noFeedbacks: {
         fontSize: 16,
         fontStyle: 'italic',
-        textAlign: 'center',
-        marginTop: 16,
-    },
-    error: {
-        fontSize: 16,
-        color: 'red',
         textAlign: 'center',
         marginTop: 16,
     },

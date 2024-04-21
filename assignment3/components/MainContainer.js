@@ -12,50 +12,40 @@ import DetailsScreen from './screens/Detail';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Define the main tab navigator, which includes only the Home and Favourite tabs
+function Tabs() {
+  return (
+    <Tab.Navigator
+      initialRouteName="HomeTab"
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          if (route.name === 'HomeTab') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'FavouriteTab') {
+            iconName = focused ? 'heart' : 'heart-outline';
+          }
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: 'tomato',
+        tabBarInactiveTintColor: 'grey',
+        tabBarLabelStyle: { fontSize: 12 },
+        tabBarStyle: { height: 60 },
+      })}
+    >
+      <Tab.Screen name="HomeTab" component={HomeScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="FavouriteTab" component={FavouriteScreen} options={{ headerShown: false }}  />
+    </Tab.Navigator>
+  );
+}
+
 function MainContainer() {
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        initialRouteName="HomeTab"
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName;
-
-            if (route.name === 'HomeTab') {
-              iconName = focused ? 'home' : 'home-outline';
-            } else if (route.name === 'FavouriteTab') {
-              iconName = focused ? 'heart' : 'heart-outline';
-            }
-
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: 'tomato',
-          tabBarInactiveTintColor: 'grey',
-          tabBarLabelStyle: { fontSize: 12 },
-          tabBarStyle: { height: 60 },
-        })}
-      >
-        <Tab.Screen name="HomeTab" options={{ title: 'Home' }}>
-          {() => (
-            <Stack.Navigator
-            screenOptions={{headerShown:false}}
-            >
-              <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Detail" component={DetailsScreen} options={{ headerShown: false }} />
-            </Stack.Navigator>
-          )}
-        </Tab.Screen>
-        <Tab.Screen name="FavouriteTab" options={{ title: 'Favorites' }}>
-          {() => (
-            <Stack.Navigator
-            screenOptions={{headerShown:false}}
-            >
-              <Stack.Screen name="Favourite" component={FavouriteScreen} />
-              <Stack.Screen name="Detail" component={DetailsScreen} options={{ headerShown: false }} />
-            </Stack.Navigator>
-          )}
-        </Tab.Screen>
-      </Tab.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: true }}>
+        <Stack.Screen name="HomeTabs" component={Tabs} options={{ headerShown: false }} />
+        <Stack.Screen name="Detail" component={DetailsScreen} options={{ headerShown: false }} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
